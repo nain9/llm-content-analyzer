@@ -1,6 +1,5 @@
 from telebot import types
 from telebot.async_telebot import AsyncTeleBot
-
 from entities.states import RuntimeStates
 
 
@@ -29,34 +28,35 @@ class TelegramView:
         self.bot.message_handler(commands=['reanalyze'])(self._handle_reanalyze)
         self.bot.message_handler(commands=['switch'])(self._handle_switch)
 
-        async def param_state_filter(message):
-            return await self._is_valid_param_state(message.chat.id, message.from_user.id)
+        async def param_state_filter(message) -> bool:    
+            return await self._is_valid_param_state(message.from_user.id)
 
-        async def discusse_state_filter(message):
-            state = await self._get_state(message.from_user.id, message.chat.id)
+        async def discusse_state_filter(message) -> bool:
+            state = await self._get_state(message.from_user.id)
             return state == RuntimeStates.state_discusse
 
         self.bot.message_handler(func=param_state_filter)(self._handle_params_messages)
         self.bot.message_handler(func=discusse_state_filter)(self._handle_discusse_message)
 
-        self.bot.callback_query_handler(func=lambda call: call.data in self.controller.config['models'] or call.data.startswith('model_') or call.data == 'back_to_model_type' or call.data.startswith('back_to_model_name_'))(self._handle_model_callback)
+        def model_callback_filter(call: types.CallbackQuery) -> bool:
+            return (
+                call.data in self.controller.config.MODELS or
+                call.data.startswith('model_') or 
+                call.data == 'back_to_model_type' or
+                call.data.startswith('back_to_model_name_')
+            )
+
+        self.bot.callback_query_handler(func=model_callback_filter)(self._handle_model_callback)
         self.bot.callback_query_handler(func=lambda call: call.data == 'analyze')(self._handle_analyze_callback)
         self.bot.callback_query_handler(func=lambda call: True)(self._handle_general_callback)
 
-    async def set_state(self, user_id: int, state: RuntimeStates, chat_id: int) -> None:
-        """Установить состояние пользователя."""
-        user = self.controller.get_user(user_id)
-        user.set_state(state)
-        # await self.bot.set_state(user_id, state, chat_id)
-
-    async def _get_state(self, user_id: int, chat_id: int) -> RuntimeStates:
+    async def _get_state(self, user_id: int) -> RuntimeStates:
         """Получить текущее состояние пользователя."""
-        user = self.controller.get_user(user_id)
-        return user.get_state()
+        return await self.controller.get_state_by_user_id(user_id)
 
-    async def _is_valid_param_state(self, chat_id: int, user_id: int) -> bool:
+    async def _is_valid_param_state(self, user_id: int) -> bool:
         """Проверить, является ли текущее состояние состоянием параметра."""
-        state = await self._get_state(user_id, chat_id)
+        state = await self._get_state(user_id)
         return state in [
             RuntimeStates.state_platform,
             RuntimeStates.state_blog_type,
@@ -83,7 +83,7 @@ class TelegramView:
 
     async def send_state_keyboard(self, chat_id: int, user_id: int, state: str) -> None:
         """Отправить клавиатуру для текущего шага."""
-        config = self.controller.config['state_config'][state]
+        config = self.controller.config.STATES_CONFIG[state]
         markup = types.InlineKeyboardMarkup()
         for option in config['keyboard']:
             markup.add(types.InlineKeyboardButton(option, callback_data=option))
@@ -108,7 +108,7 @@ class TelegramView:
     async def _handle_change_model(self, message: types.Message) -> None:
         """Обработать команду /changemodel."""
         markup = types.InlineKeyboardMarkup()
-        for model_type in self.controller.config['models']:
+        for model_type in self.controller.config.MODELS:
             markup.add(types.InlineKeyboardButton(model_type, callback_data=model_type))
         await self.send_message(
             chat_id=message.chat.id,
@@ -136,9 +136,9 @@ class TelegramView:
         """Обработать сообщения с параметрами."""
         user_id = message.from_user.id
         chat_id = message.chat.id
-        state = await self._get_state(user_id, chat_id)
+        state = await self._get_state(user_id)
         
-        if state in self.controller.config['state_config']:    
+        if state in self.controller.config.STATES_CONFIG:    
             await self.edit_message_reply_markup(
                 chat_id=chat_id,
                 message_id=self.keyboard_message_id
@@ -176,9 +176,9 @@ class TelegramView:
         """Обработать общие callback-запросы."""
         user_id = call.from_user.id
         chat_id = call.message.chat.id
-        state = await self._get_state(user_id, chat_id)
+        state = await self._get_state(user_id)
 
-        if state in self.controller.config['state_config']:
+        if state in self.controller.config.STATES_CONFIG:
             await self.edit_message_text(
                 chat_id=chat_id,
                 message_id=call.message.message_id,

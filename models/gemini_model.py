@@ -1,4 +1,6 @@
-import aiohttp
+import asyncio
+from google import genai
+from google.genai.types import Content, Part, GenerateContentConfig
 
 from entities.user import User
 from models.base_model import BaseModel
@@ -19,39 +21,34 @@ class GeminiModel(BaseModel):
                           messages: list = None) -> str:
         """Получить ответ от модели Gemini."""
         try:
-            url = f'{user.base_url}/models/{user.model_name}:generateContent'
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {self.api_key}'
-            }
-            
-            formatted_messages = [
-                {
-                    'role': 'user' if message['role'] == 'user' else 'model',
-                    'parts': [{'text': message['content']}]
-                }
+            client = genai.Client(
+                api_key=self.api_key, 
+                http_options={"base_url": "https://api.proxyapi.ru/google"}
+            )
+
+            contents = [
+                Content(
+                    role=message['role'],
+                    parts=[Part(text=message['content'])]
+                )
                 for message in messages or user.messages
             ]
-            
-            data = {
-                'contents': formatted_messages,
-                'generationConfig': {
-                    'temperature': temperature or self.temperature,
-                    'frequencyPenalty': frequency_penalty or self.frequency_penalty,
-                    'presencePenalty': presence_penalty or self.presence_penalty,
-                    'maxOutputTokens': max_tokens or self.max_tokens
-                }
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=data, headers=headers) as response:
-                    response_data = await response.json()
 
-                    if response.status != 200:
-                        raise Exception(f'API Error: {response_data}')
-                    
-                    return response_data['candidates'][0]['content']['parts'][0]['text'].replace('*', '')
+            config = GenerateContentConfig(
+                temperature=temperature or self.temperature,
+                frequency_penalty=frequency_penalty or self.frequency_penalty,
+                presence_penalty=presence_penalty or self.presence_penalty,
+                max_output_tokens=max_tokens or self.max_tokens
+            )
 
+            response = await asyncio.to_thread(
+                client.models.generate_content, 
+                model=user.model_name,
+                contents=contents,
+                config=config
+            )
+
+            return response.text.replace('*', '')
         except Exception as e:
             return f'Ошибка: {str(e)}'
         

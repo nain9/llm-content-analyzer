@@ -1,5 +1,6 @@
-import firebase_admin
-from firebase_admin import credentials, firestore
+from google.oauth2 import service_account
+from google.cloud.firestore_v1.async_client import AsyncClient
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,27 +12,45 @@ class FirebaseService:
 
     def __init__(self, credentials_path: str):
         """Инициализация сервиса Firebase Firestore."""
-        cred = credentials.Certificate(credentials_path)
-        firebase_admin.initialize_app(cred)
-        self.db = firestore.client()
+        cred = service_account.Credentials.from_service_account_file(
+            filename=credentials_path
+        )
+        self.db = AsyncClient(credentials=cred)
+        self._user_cache = {}
 
-    def save_user(self, user: 'User') -> None:
-        """Сохранить данные пользователя в Firestore."""
-        self.db.collection('users').document(str(user.user_id)).set(user.to_dict())
+    async def save_user(self, user: 'User') -> None:
+        """Сохранить пользователя в Firestore."""
+        doc_ref = self.db.collection("users").document(
+            document_id=str(user.user_id)
+            )
+        await doc_ref.set(user.to_dict())
+        self._user_cache[user.user_id] = user
 
-    def get_user(self, user_id: int) -> 'User':
-        """Получить пользователя из Firestore или создать нового, если не найден."""
+    async def get_user(self, user_id: int) -> 'User':
+        """Получить пользователя из Firestore или создать нового."""
         from entities.user import User
-        doc_ref = self.db.collection('users').document(str(user_id))
-        doc = doc_ref.get()
+
+        if user_id in self._user_cache:
+            return self._user_cache[user_id]
+
+        doc_ref = self.db.collection("users").document(
+            document_id=str(user_id)
+            )
+        doc = await doc_ref.get()
         user_data = doc.to_dict() if doc.exists else None
+
         if user_data:
             user = User.from_dict(user_data)
         else:
             user = User(user_id=user_id)
-            self.save_user(user)
+            await self.save_user(user)
+
+        user.set_firebase_service(self)
+        self._user_cache[user_id] = user
         return user
 
-    def delete_user(self, user_id: int) -> None:
+    async def delete_user(self, user_id: int) -> None:
         """Удалить пользователя из Firestore."""
-        self.db.collection('users').document(str(user_id)).delete()
+        doc_ref = self.db.collection("users").document(str(user_id))
+        await doc_ref.delete()
+        self._user_cache.pop(user_id, None)

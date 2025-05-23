@@ -6,7 +6,6 @@ from models.prompt_templates import PromptTemplates
 
 if TYPE_CHECKING:
     from entities.user import User
-    from entities.analysis_data import AnalysisData
 
 
 class BaseModel(ABC):
@@ -16,7 +15,7 @@ class BaseModel(ABC):
         """Инициализация базовых параметров модели."""
         self.api_key = api_key
         self.max_tokens = 1000
-        self.temperature = 0.4
+        self.temperature = 0.5
         self.frequency_penalty = 0.3
         self.presence_penalty = 0.2
 
@@ -42,25 +41,25 @@ class BaseModel(ABC):
         ])
 
         for text, reply in zip(messages, responses):
-            user.add_message("user", text)
-            user.add_message("assistant", reply)
+            await user.add_message("user", text)
+            await user.add_message("assistant", reply)
 
         return responses
 
-    async def analyze_data(self, user: 'User', analysis_data: 'AnalysisData') -> str:
+    async def analyze_data(self, user: 'User') -> str:
         """Проанализировать данные поста."""
-        input_text = PromptTemplates.audience_reaction(analysis_data)
-        user.add_message('user', input_text)
+        input_text = PromptTemplates.audience_reaction(user.analysis_data)
+        await user.add_message('user', input_text)
         response = await self._get_response(
             user=user,
             messages=[{"role": "user", "content": input_text}]
         )
-        user.add_message('assistant', response)
+        await user.add_message('assistant', response)
         return response
 
-    async def advanced_analyze_data(self, user: 'User', analysis_data: 'AnalysisData') -> str:
+    async def advanced_analyze_data(self, user: 'User') -> str:
         """Проанализировать данные поста, используя параллельные запросы"""
-        input_messages = PromptTemplates.advanced_audience_reaction(analysis_data)
+        input_messages = PromptTemplates.advanced_audience_reaction(user.analysis_data)
         output_messages = await self._get_multiple_responses(user, input_messages)
         return '\n\n'.join(output_messages)
 
@@ -72,19 +71,19 @@ class BaseModel(ABC):
             validation_reply = await self._get_response(
                 user=user,
                 messages=validation_messages,
-                temperature=0.1,
+                temperature=0.0,
                 max_tokens=10
             )
             if validation_reply.strip().lower() == 'true':
                 prompt = PromptTemplates.discusse_response(message)
-                user.add_message('user', prompt)
+                await user.add_message('user', prompt)
                 response = await self._get_response(
                     user=user,
-                    max_tokens=300
+                    max_tokens=700
                 )
-                user.add_message('assistant', response)
+                await user.add_message('assistant', response)
                 return response
             else:
-                return 'Ваше сообщение не связано c контекстом.'
+                return 'Ваше сообщение не связано с контекстом.'
         except Exception as e:
             return f'Ошибка: {str(e)}' 

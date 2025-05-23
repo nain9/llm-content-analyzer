@@ -12,10 +12,9 @@ if TYPE_CHECKING:
 def auto_save(func):
     """Декоратор для автоматического сохранения пользователя после изменения полей."""
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        result = func(self, *args, **kwargs)
-        if hasattr(self, '_firebase_service'):
-            self._firebase_service.save_user(self)
+    async def wrapper(self, *args, **kwargs):
+        result = await func(self, *args, **kwargs)
+        await self.save()
         return result
     return wrapper
 
@@ -31,30 +30,35 @@ class User:
     analysis_data: AnalysisData = field(default_factory=AnalysisData)
     state: str = RuntimeStates.state_none.name
     advanced_analysis: bool = False
-    _firebase_service: Optional['FirebaseService'] = None
+    _firebase_service: 'FirebaseService' = None
 
     def set_firebase_service(self, service: 'FirebaseService') -> None:
         """Установить сервис Firebase для автоматического сохранения."""
         self._firebase_service = service
 
+    async def save(self) -> None:
+        """Сохранить пользователя в Firebase."""
+        if hasattr(self, '_firebase_service'):
+            await self._firebase_service.save_user(self)
+
     @auto_save
-    def add_message(self, role: str, content: str) -> None:
+    async def add_message(self, role: str, content: str) -> None:
         """Добавить сообщение в историю сообщений пользователя."""
         self.messages.append({'role': role, 'content': content})
 
     @auto_save
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Очистить историю сообщений пользователя."""
         self.messages = []
         self.analysis_data = AnalysisData()
         self.state = RuntimeStates.state_none.name
 
     @auto_save
-    def clear_messages(self) -> None:
+    async def clear_messages(self) -> None:
         self.messages = []
 
     @auto_save
-    def update_model(self, model_type: str, model_name: str, base_url: str) -> None:
+    async def update_model(self, model_type: str, model_name: str, base_url: str) -> None:
         """Обновить настройки модели."""
         self.model_type = model_type
         self.model_name = model_name
@@ -62,17 +66,17 @@ class User:
         self.messages = []
 
     @auto_save
-    def set_analysis_field(self, field: str, value: str) -> None:
+    async def set_analysis_field(self, field: str, value: str) -> None:
         """Установить значение конкретного поля в данных анализа."""
         setattr(self.analysis_data, field, value)
 
     @auto_save
-    def set_advanced_analysis(self, value: bool) -> None:
+    async def set_advanced_analysis(self, value: bool) -> None:
         """Установить значение поля advanced_analysis."""
         self.advanced_analysis = value
 
     @auto_save
-    def set_state(self, state: RuntimeStates) -> None:
+    async def set_state(self, state: RuntimeStates) -> None:
         """Установить состояние пользователя."""
         self.state = state.name
 
