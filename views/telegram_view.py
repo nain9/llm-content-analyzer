@@ -94,7 +94,7 @@ class TelegramView:
         """Обработать команду /start."""
         await self.send_message(
             message.chat.id,
-            'Привет! Отправьте мне текст блога, а я подскажу возможную реакцию аудитории на этот текст.'
+            'Привет! Начните анализ вашей текстовой публикации и я подскажу возможную реакцию аудитории.'
         )
 
     async def _handle_clear(self, message: types.Message) -> None:

@@ -21,7 +21,6 @@ class Config:
     STATES_CONFIG: Dict[RuntimeStates, Dict] = None
 
     def __post_init__(self):
-        """Инициализировать комплексные поля после основной инициализации."""
         self.MODELS = {
             'ChatGPT': [
                 'gpt-4.1-2025-04-14',
@@ -33,7 +32,6 @@ class Config:
             ],
             'DeepSeek': [
                 'deepseek-chat',
-                'deepseek-reasoner'
             ],
             'Gemini': [
                 'gemini-2.0-flash',

@@ -1,6 +1,6 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
-import asyncio
 
 from models.prompt_templates import PromptTemplates
 
@@ -30,13 +30,22 @@ class BaseModel(ABC):
         """Получить ответ от модели"""
         pass
 
-    async def _get_multiple_responses(self, user: 'User', messages: list) -> list:
+    async def _get_multiple_responses(self, 
+                                      user: 'User', 
+                                      max_tokens: int = None, 
+                                      temperature: float = None, 
+                                      frequency_penalty: float = None, 
+                                      presence_penalty: float = None, 
+                                      messages: list = None) -> list:
         """Параллельно получить ответы на список сообщений"""
         responses = await asyncio.gather(*[
             self._get_response(
                 user=user,
                 messages=[{"role": "user", "content": text}],
-                max_tokens=150
+                max_tokens=max_tokens,
+                temperature=temperature,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty
             ) for text in messages
         ])
 
@@ -59,9 +68,39 @@ class BaseModel(ABC):
 
     async def advanced_analyze_data(self, user: 'User') -> str:
         """Проанализировать данные поста, используя параллельные запросы"""
-        input_messages = PromptTemplates.advanced_audience_reaction(user.analysis_data)
-        output_messages = await self._get_multiple_responses(user, input_messages)
-        return '\n\n'.join(output_messages)
+        input_text = PromptTemplates.comment_response(user.analysis_data)
+        comment = await self._get_response(
+            user=user,
+            messages=[{"role": "user", "content": input_text}],
+            max_tokens=100,
+            temperature=0.5,
+            frequency_penalty=0.4,
+            presence_penalty=0.2,
+        )
+        input_messages, topics, beginnings = PromptTemplates.advanced_audience_reaction(user.analysis_data)
+        output_messages = await self._get_multiple_responses(
+            user=user, 
+            messages=input_messages,
+            max_tokens=700,
+            temperature=0.1,
+            frequency_penalty=0.0,
+            presence_penalty=0.0,
+        )
+        input_summaries = [
+            PromptTemplates.summary_response(message, topic, beginning) 
+            for message, topic, beginning in zip(output_messages, topics, beginnings)
+        ]
+        # input_summaries.append(PromptTemplates.summary_comment_response(input_summaries[0]))
+        output_summaries = await self._get_multiple_responses(
+            user=user, 
+            messages=input_summaries,
+            max_tokens=150,
+            temperature=0.4,
+            frequency_penalty=0.4,
+            presence_penalty=0.2,
+        )
+        return comment + '\n\n' + '\n\n'.join(output_summaries)
+        # return '\n\n'.join(output_summaries)
 
     async def get_discusse_response(self, user: 'User', message: str) -> str:
         """Получить ответ на сообщение пользователя в контексте обсуждения поста."""
@@ -87,3 +126,4 @@ class BaseModel(ABC):
                 return 'Ваше сообщение не связано с контекстом.'
         except Exception as e:
             return f'Ошибка: {str(e)}' 
+        
