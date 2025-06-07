@@ -23,7 +23,7 @@ class GeminiModel(BaseModel):
         try:
             client = genai.Client(
                 api_key=self.api_key, 
-                http_options={"base_url": "https://api.proxyapi.ru/google"}
+                http_options={"base_url": user.base_url}
             )
 
             contents = [

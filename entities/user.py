@@ -63,7 +63,6 @@ class User:
         self.model_type = model_type
         self.model_name = model_name
         self.base_url = base_url
-        self.messages = []
 
     @auto_save
     async def set_analysis_field(self, field: str, value: str) -> None:

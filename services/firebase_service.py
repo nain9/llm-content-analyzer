@@ -16,7 +16,6 @@ class FirebaseService:
             filename=credentials_path
         )
         self.db = AsyncClient(credentials=cred)
-        self._user_cache = {}
 
     async def save_user(self, user: 'User') -> None:
         """Сохранить пользователя в Firestore."""
@@ -24,14 +23,10 @@ class FirebaseService:
             document_id=str(user.user_id)
             )
         await doc_ref.set(user.to_dict())
-        self._user_cache[user.user_id] = user
 
     async def get_user(self, user_id: int) -> 'User':
         """Получить пользователя из Firestore или создать нового."""
         from entities.user import User
-
-        if user_id in self._user_cache:
-            return self._user_cache[user_id]
 
         doc_ref = self.db.collection("users").document(
             document_id=str(user_id)
@@ -46,11 +41,9 @@ class FirebaseService:
             await self.save_user(user)
 
         user.set_firebase_service(self)
-        self._user_cache[user_id] = user
         return user
 
     async def delete_user(self, user_id: int) -> None:
         """Удалить пользователя из Firestore."""
         doc_ref = self.db.collection("users").document(str(user_id))
         await doc_ref.delete()
-        self._user_cache.pop(user_id, None)

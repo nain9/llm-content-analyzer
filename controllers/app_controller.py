@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict
 
 import aiohttp
 from telebot import types
@@ -169,7 +169,7 @@ class AppController:
         """Обработать текст поста."""
         user = await self._get_user(user_id)
         await user.set_analysis_field('post_text', text)
-        await self._set_state_by_user_id(user_id, RuntimeStates.state_discusse)
+        await self._set_state_by_user_id(user_id, RuntimeStates.state_dialog)
         
         model = self._get_model_for_user(user)
         if user.advanced_analysis:
@@ -179,11 +179,11 @@ class AppController:
             response = await model.analyze_data(user)
             await self._send_analysis_results(user, chat_id, response)
 
-    async def handle_discusse_message(self, message: types.Message) -> None:
+    async def handle_dialog_message(self, message: types.Message) -> None:
         """Обработать сообщение в контексте обсуждения поста."""
         user = await self._get_user(message.from_user.id)
         model = self._get_model_for_user(user)
-        response = await model.get_discusse_response(user, message.text)
+        response = await model.get_dialog_response(user, message.text)
         await self.view.send_message(message.chat.id, response)
 
     async def change_model(self, user_id: int, user_choice: str, message_id: int = None):
@@ -248,4 +248,4 @@ class AppController:
             f'Аудитория: {user.analysis_data.audience}\n\n'
             f'{response}'
         )
-        await self._set_state_by_user_id(user.user_id, RuntimeStates.state_discusse) 
+        await self._set_state_by_user_id(user.user_id, RuntimeStates.state_dialog)

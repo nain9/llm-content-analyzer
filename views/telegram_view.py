@@ -33,10 +33,10 @@ class TelegramView:
 
         async def discusse_state_filter(message) -> bool:
             state = await self._get_state(message.from_user.id)
-            return state == RuntimeStates.state_discusse
+            return state == RuntimeStates.state_dialog
 
         self.bot.message_handler(func=param_state_filter)(self._handle_params_messages)
-        self.bot.message_handler(func=discusse_state_filter)(self._handle_discusse_message)
+        self.bot.message_handler(func=discusse_state_filter)(self._handle_dialog_message)
 
         def model_callback_filter(call: types.CallbackQuery) -> bool:
             return (
@@ -147,9 +147,9 @@ class TelegramView:
         elif state == RuntimeStates.state_post_text:
             await self.controller.handle_post_text(user_id, chat_id, message.text.strip())
 
-    async def _handle_discusse_message(self, message: types.Message) -> None:
+    async def _handle_dialog_message(self, message: types.Message) -> None:
         """Обработать сообщения в контексте обсуждения."""
-        await self.controller.handle_discusse_message(message)
+        await self.controller.handle_dialog_message(message)
 
     async def _handle_model_callback(self, call: types.CallbackQuery) -> None:
         """Обработать callback выбора модели."""

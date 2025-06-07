@@ -8,4 +8,4 @@ class RuntimeStates(StatesGroup):
     state_purpose = State()
     state_post_text = State()
     state_blog_type = State()
-    state_discusse = State()
+    state_dialog = State()

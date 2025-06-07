@@ -43,7 +43,7 @@ class Config:
         self.API_URLS = {
             'ChatGPT': 'https://api.proxyapi.ru/openai/v1',
             'DeepSeek': 'https://api.proxyapi.ru/deepseek',
-            'Gemini': 'https://api.proxyapi.ru/google/v1beta',
+            'Gemini': 'https://api.proxyapi.ru/google',
             'balance': 'https://api.proxyapi.ru/proxyapi/balance'
         }
 

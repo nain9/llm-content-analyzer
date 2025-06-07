@@ -90,7 +90,6 @@ class BaseModel(ABC):
             PromptTemplates.summary_response(message, topic, beginning) 
             for message, topic, beginning in zip(output_messages, topics, beginnings)
         ]
-        # input_summaries.append(PromptTemplates.summary_comment_response(input_summaries[0]))
         output_summaries = await self._get_multiple_responses(
             user=user, 
             messages=input_summaries,
@@ -100,21 +99,28 @@ class BaseModel(ABC):
             presence_penalty=0.2,
         )
         return comment + '\n\n' + '\n\n'.join(output_summaries)
-        # return '\n\n'.join(output_summaries)
 
-    async def get_discusse_response(self, user: 'User', message: str) -> str:
+    async def get_dialog_response(self, user: 'User', message: str) -> str:
         """Получить ответ на сообщение пользователя в контексте обсуждения поста."""
-        validation_prompt = PromptTemplates.discusse_validation(message)
-        validation_messages = user.messages + [{'role': 'user', 'content': validation_prompt}]
         try:
-            validation_reply = await self._get_response(
+            reasoning_prompt = PromptTemplates.dialog_validation_reasoning(message, user.messages)
+            reasoning_response = await self._get_response(
                 user=user,
-                messages=validation_messages,
-                temperature=0.0,
+                messages=[{'role': 'user', 'content': reasoning_prompt}],
+                max_tokens=700,
+                temperature=0.1,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+            )
+            summary_prompt = PromptTemplates.dialog_validation_summary(reasoning_response)
+            summary_response = await self._get_response(
+                user=user,
+                messages=[{'role': 'user', 'content': summary_prompt}],
+                temperature=0.1,
                 max_tokens=10
             )
-            if validation_reply.strip().lower() == 'true':
-                prompt = PromptTemplates.discusse_response(message)
+            if summary_response.strip().lower() == 'true':
+                prompt = PromptTemplates.dialog_response(message)
                 await user.add_message('user', prompt)
                 response = await self._get_response(
                     user=user,
