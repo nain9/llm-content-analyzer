@@ -144,22 +144,8 @@ class AppController:
             return
 
         model = self._get_model_for_user(user)
-        if user.advanced_analysis:
-            response = await model.advanced_analyze_data(user)
-            await self._send_analysis_results(user, chat_id, response)
-        else:
-            response = await model.analyze_data(user)
-            await self._send_analysis_results(user, chat_id, response)
-
-    async def handle_switch(self, message: types.Message) -> None:
-        """Обработать команду переключения режима анализа."""
-        user = await self._get_user(message.from_user.id)
-        await user.set_advanced_analysis(not user.advanced_analysis)
-        status = "включен" if user.advanced_analysis else "выключен"
-        await self.view.send_message(
-            message.chat.id,
-            f'Расширенный режим анализа {status}!'
-        )
+        response = await model.analyze_data(user)
+        await self._send_analysis_results(user, chat_id, response)
 
     async def handle_state_input(self, user_id: int, chat_id: int, text: str, state: RuntimeStates) -> None:
         """Обработать ввод для текущего шага анализа."""
@@ -181,12 +167,8 @@ class AppController:
         await self._set_state_by_user_id(user_id, RuntimeStates.state_dialog)
         
         model = self._get_model_for_user(user)
-        if user.advanced_analysis:
-            response = await model.advanced_analyze_data(user)
-            await self._send_analysis_results(user, chat_id, response)
-        else:
-            response = await model.analyze_data(user)
-            await self._send_analysis_results(user, chat_id, response)
+        response = await model.analyze_data(user)
+        await self._send_analysis_results(user, chat_id, response)
 
     async def handle_dialog_message(self, message: types.Message) -> None:
         """Обработать сообщение в контексте обсуждения поста."""

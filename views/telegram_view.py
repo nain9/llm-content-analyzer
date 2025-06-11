@@ -27,7 +27,6 @@ class TelegramView:
         self.bot.message_handler(commands=['comment'])(self._handle_comment)
         self.bot.message_handler(commands=['analyze'])(self._handle_analyze)
         self.bot.message_handler(commands=['reanalyze'])(self._handle_reanalyze)
-        self.bot.message_handler(commands=['switch'])(self._handle_switch)
 
         async def param_state_filter(message) -> bool:    
             return await self._is_valid_param_state(message.from_user.id)
@@ -131,10 +130,6 @@ class TelegramView:
     async def _handle_reanalyze(self, message: types.Message) -> None:
         """Обработать команду /reanalyze."""
         await self.controller.handle_reanalyze(message)
-
-    async def _handle_switch(self, message: types.Message) -> None:
-        """Обработать команду /switch."""
-        await self.controller.handle_switch(message)
 
     async def _handle_params_messages(self, message: types.Message) -> None:
         """Обработать сообщения с параметрами."""

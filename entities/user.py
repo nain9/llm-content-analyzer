@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import List, Dict, Optional, TYPE_CHECKING
+from typing import Dict, List, TYPE_CHECKING
 
 from entities.analysis_data import AnalysisData
 from entities.states import RuntimeStates
@@ -30,7 +30,6 @@ class User:
     comments: list = field(default_factory=list)
     analysis_data: AnalysisData = field(default_factory=AnalysisData)
     state: str = RuntimeStates.state_none.name
-    advanced_analysis: bool = False
     _firebase_service: 'FirebaseService' = None
 
     def set_firebase_service(self, service: 'FirebaseService') -> None:
@@ -77,11 +76,6 @@ class User:
         setattr(self.analysis_data, field, value)
 
     @auto_save
-    async def set_advanced_analysis(self, value: bool) -> None:
-        """Установить значение поля advanced_analysis."""
-        self.advanced_analysis = value
-
-    @auto_save
     async def set_state(self, state: RuntimeStates) -> None:
         """Установить состояние пользователя."""
         self.state = state.name
@@ -100,8 +94,7 @@ class User:
             'messages': self.messages,
             'comments': self.comments,
             'analysis_data': self.analysis_data.to_dict(),
-            'state': self.state,
-            'advanced_analysis': self.advanced_analysis
+            'state': self.state
         }
 
     @staticmethod
@@ -115,7 +108,6 @@ class User:
             messages=data.get('messages', []),
             comments=data.get('comments', []),
             analysis_data=AnalysisData.from_dict(data.get('analysis_data', {})),
-            state=data.get('state', RuntimeStates.state_none.name),
-            advanced_analysis=data.get('advanced_analysis', False)
+            state=data.get('state', RuntimeStates.state_none.name)
         )
 

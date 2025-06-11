@@ -54,17 +54,6 @@ class BaseModel(ABC):
             await user.add_message("assistant", reply)
 
         return responses
-
-    async def analyze_data(self, user: 'User') -> str:
-        """Проанализировать данные поста."""
-        input_text = PromptTemplates.audience_reaction(user.analysis_data)
-        await user.add_message('user', input_text)
-        response = await self._get_response(
-            user=user,
-            messages=[{"role": "user", "content": input_text}]
-        )
-        await user.add_message('assistant', response)
-        return response
     
     async def generate_comment(self, user: 'User') -> str:
         input_text = PromptTemplates.comment_response(user.analysis_data)
@@ -82,9 +71,9 @@ class BaseModel(ABC):
         await user.add_comment(response)
         return response
 
-    async def advanced_analyze_data(self, user: 'User') -> str:
+    async def analyze_data(self, user: 'User') -> str:
         """Проанализировать данные поста, используя параллельные запросы"""
-        input_messages, topics, beginnings = PromptTemplates.advanced_audience_reaction(user.analysis_data)
+        input_messages, topics, beginnings = PromptTemplates.audience_reaction(user.analysis_data)
         output_messages = await self._get_multiple_responses(
             user=user, 
             messages=input_messages,
