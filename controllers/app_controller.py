@@ -87,6 +87,15 @@ class AppController:
         keyboard.add(types.InlineKeyboardButton(text='Начать анализ поста', callback_data='analyze'))
         keyboard.add(types.InlineKeyboardButton(text='« Назад', callback_data=f'back_to_model_name_{model_type}'))
         return keyboard
+    
+    async def handle_comment(self, message: types.Message) -> None:
+        user = await self._get_user(message.from_user.id)
+        if not user.analysis_data.post_text:
+            await self.view.send_message(message.chat.id, "Сначала задайте параметры анализа командой /analyze")
+            return
+        model = self._get_model_for_user(user)
+        response = await model.generate_comment(user)
+        await self.view.send_message(message.chat.id, response)
 
     async def handle_analyze(self, message: types.Message) -> None:
         """Обработать команду начала анализа поста."""

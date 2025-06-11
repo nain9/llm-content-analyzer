@@ -42,8 +42,3 @@ class FirebaseService:
 
         user.set_firebase_service(self)
         return user
-
-    async def delete_user(self, user_id: int) -> None:
-        """Удалить пользователя из Firestore."""
-        doc_ref = self.db.collection("users").document(str(user_id))
-        await doc_ref.delete()

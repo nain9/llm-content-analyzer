@@ -65,18 +65,25 @@ class BaseModel(ABC):
         )
         await user.add_message('assistant', response)
         return response
-
-    async def advanced_analyze_data(self, user: 'User') -> str:
-        """Проанализировать данные поста, используя параллельные запросы"""
+    
+    async def generate_comment(self, user: 'User') -> str:
         input_text = PromptTemplates.comment_response(user.analysis_data)
-        comment = await self._get_response(
+        messages = [{"role": "user", "content": input_text},
+                    *[{"role": "assistant", "content": comment} for comment in user.comments],
+                    {"role": "user", "content": "Сгенерируй комментарий, он может отличаться по тональности от предыдущих"}]
+        response = await self._get_response(
             user=user,
-            messages=[{"role": "user", "content": input_text}],
+            messages=messages,
             max_tokens=100,
             temperature=0.5,
             frequency_penalty=0.4,
             presence_penalty=0.2,
         )
+        await user.add_comment(response)
+        return response
+
+    async def advanced_analyze_data(self, user: 'User') -> str:
+        """Проанализировать данные поста, используя параллельные запросы"""
         input_messages, topics, beginnings = PromptTemplates.advanced_audience_reaction(user.analysis_data)
         output_messages = await self._get_multiple_responses(
             user=user, 
@@ -98,7 +105,7 @@ class BaseModel(ABC):
             frequency_penalty=0.4,
             presence_penalty=0.2,
         )
-        return comment + '\n\n' + '\n\n'.join(output_summaries)
+        return '\n\n'.join(output_summaries)
 
     async def get_dialog_response(self, user: 'User', message: str) -> str:
         """Получить ответ на сообщение пользователя в контексте обсуждения поста."""

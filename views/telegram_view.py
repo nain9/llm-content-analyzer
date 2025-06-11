@@ -24,6 +24,7 @@ class TelegramView:
         self.bot.message_handler(commands=['balance'])(self._handle_balance)
         self.bot.message_handler(commands=['changemodel'])(self._handle_change_model)
         self.bot.message_handler(commands=['currentmodel'])(self._handle_current_model)
+        self.bot.message_handler(commands=['comment'])(self._handle_comment)
         self.bot.message_handler(commands=['analyze'])(self._handle_analyze)
         self.bot.message_handler(commands=['reanalyze'])(self._handle_reanalyze)
         self.bot.message_handler(commands=['switch'])(self._handle_switch)
@@ -119,6 +120,9 @@ class TelegramView:
     async def _handle_current_model(self, message: types.Message) -> None:
         """Обработать команду /currentmodel."""
         await self.controller.handle_current_model(message)
+        
+    async def _handle_comment(self, message: types.Message) -> None:
+        await self.controller.handle_comment(message)
 
     async def _handle_analyze(self, message: types.Message) -> None:
         """Обработать команду /analyze."""

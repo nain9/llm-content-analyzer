@@ -27,6 +27,7 @@ class User:
     model_name: str = 'gpt-4.1-nano-2025-04-14'
     base_url: str = 'https://api.proxyapi.ru/openai/v1'
     messages: List[Dict[str, str]] = field(default_factory=list)
+    comments: list = field(default_factory=list)
     analysis_data: AnalysisData = field(default_factory=AnalysisData)
     state: str = RuntimeStates.state_none.name
     advanced_analysis: bool = False
@@ -45,11 +46,17 @@ class User:
     async def add_message(self, role: str, content: str) -> None:
         """Добавить сообщение в историю сообщений пользователя."""
         self.messages.append({'role': role, 'content': content})
+    
+    @auto_save
+    async def add_comment(self, comment: str) -> None:
+        """Добавить комментарий."""
+        self.comments.append(comment)
 
     @auto_save
     async def clear(self) -> None:
         """Очистить историю сообщений пользователя."""
         self.messages = []
+        self.comments = []
         self.analysis_data = AnalysisData()
         self.state = RuntimeStates.state_none.name
 
@@ -91,6 +98,7 @@ class User:
             'model_name': self.model_name,
             'base_url': self.base_url,
             'messages': self.messages,
+            'comments': self.comments,
             'analysis_data': self.analysis_data.to_dict(),
             'state': self.state,
             'advanced_analysis': self.advanced_analysis
@@ -105,6 +113,7 @@ class User:
             model_name=data.get('model_name', ""),
             base_url=data.get('base_url', ""),
             messages=data.get('messages', []),
+            comments=data.get('comments', []),
             analysis_data=AnalysisData.from_dict(data.get('analysis_data', {})),
             state=data.get('state', RuntimeStates.state_none.name),
             advanced_analysis=data.get('advanced_analysis', False)
